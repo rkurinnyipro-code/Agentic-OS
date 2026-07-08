@@ -1,0 +1,4 @@
+wt-*/
+loop/memory/*
+!loop/memory/.gitkeep
+loop/work-order.json
