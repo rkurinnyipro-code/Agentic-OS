@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-echo -e "$(date +%Y-%m-%dT%H:%M:%S%z)\t$1\t$2" >> "$(dirname "$0")/../memory/usage.log"
+F="$(dirname "$0")/../memory/usage.log"; mkdir -p "$(dirname "$F")"
+printf '%s\t%s\t%s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$1" "$2" >> "$F"

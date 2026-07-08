@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # usage: trust-log.sh <skill> <pass|fail> | --render | --tier <skill>
 set -euo pipefail
-F="$(dirname "$0")/../memory/trust.tsv"; touch "$F"
+F="$(dirname "$0")/../memory/trust.tsv"; mkdir -p "$(dirname "$F")"; touch "$F"
 tier_of() { awk -v r="$1" -v p="$2" 'BEGIN{
   rate=(r>0)?p/r:0
   if (r>=20 && rate>=0.95) print "auto"
   else if (r<10 || rate<0.90) print "watch"
   else print "queue"}'; }
+lookup() { awk -F'\t' -v s="$1" '$1==s{print; f=1} END{if(!f) print s"\t0\t0"}' "$F"; }
 case "${1:-}" in
   --render)
     printf "%-20s %5s %5s %6s %s\n" skill runs pass rate tier
@@ -15,14 +16,14 @@ case "${1:-}" in
         "$(awk -v r="$r" -v p="$p" 'BEGIN{printf "%.0f",(r>0)?p/r*100:0}')" \
         "$(tier_of "$r" "$p")"; done < "$F";;
   --tier)
-    line=$(grep -P "^${2}\t" "$F" || echo -e "${2}\t0\t0")
+    line=$(lookup "$2")
     tier_of "$(cut -f2 <<<"$line")" "$(cut -f3 <<<"$line")";;
   *)
     awk -v s="$1" -v r="$2" -F'\t' 'BEGIN{OFS="\t"; f=0}
       $1==s {f=1; print s,$2+1,$3+(r=="pass"); next} {print}
       END{if(!f) print s,1,(r=="pass")?1:0}' "$F" > "$F.t" && mv "$F.t" "$F"
-    if [ "$2" = fail ]; then
-      runs=$(grep -P "^${1}\t" "$F" | cut -f2)
+    if [ "${2:-}" = fail ]; then
+      runs=$(lookup "$1" | cut -f2)
       [ "$("$0" --tier "$1")" = watch ] && [ "$runs" -ge 10 ] \
         && echo "ALERT: $1 demoted to watch after $runs runs" >&2 || true
     fi;;
